@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <!--
+    viewport-fit=cover — обязателен для iPhone: даёт доступ к зонам
+    «острова» сверху и домашнего индикатора снизу (env(safe-area-inset-*)).
+    interactive-widget — чтобы клавиатура не выталкивала панель заметок.
+  -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content" />
+  <meta name="color-scheme" content="light dark" />
+  <meta name="theme-color" content="#f2f4f8" />
+  <title>Расписание преподавателя</title>
+  <link rel="stylesheet" href="style.css" />
+  <!--
+    Telegram WebApp SDK. Нужен ТОЛЬКО для:
+      • темы оформления (Telegram.WebApp.themeParams),
+      • раскрытия окна на весь экран (expand).
+    Никаких запросов к API бота и токенов здесь нет.
+  -->
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+<body>
+
+  <!-- ==================== ШАПКА ==================== -->
+  <header class="app-header">
+    <div class="app-header__row">
+      <h1 class="app-header__title" id="appTitle">Расписание преподавателя</h1>
+      <div class="app-header__clock" id="appClock">--:--</div>
+    </div>
+    <div class="app-header__subtitle" id="appSubtitle"></div>
+  </header>
+
+  <!-- ==================== ЭКРАНЫ ==================== -->
+  <main class="main" id="main">
+
+    <!-- ЭКРАН 1: СЕГОДНЯ -->
+    <section class="screen" id="screen-today" data-screen="today">
+      <div class="day-head">
+        <div>
+          <div class="day-head__label">Сегодня</div>
+          <div class="day-head__date" id="todayDate">—</div>
+        </div>
+        <div class="day-head__badge" id="todayBadge" hidden></div>
+      </div>
+      <div id="todayBody" class="day-body"></div>
+    </section>
+
+    <!-- ЭКРАН 2: ЗАВТРА -->
+    <section class="screen" id="screen-tomorrow" data-screen="tomorrow">
+      <div class="day-head">
+        <div>
+          <div class="day-head__label">Завтра</div>
+          <div class="day-head__date" id="tomorrowDate">—</div>
+        </div>
+        <div class="day-head__badge" id="tomorrowBadge" hidden></div>
+      </div>
+      <div id="tomorrowBody" class="day-body"></div>
+    </section>
+
+    <!-- ЭКРАН 3: НЕДЕЛЯ -->
+    <section class="screen" id="screen-week" data-screen="week">
+      <div class="day-head">
+        <div>
+          <div class="day-head__label">Неделя</div>
+          <div class="day-head__date">Постоянное расписание</div>
+        </div>
+      </div>
+      <div id="weekBody" class="day-body"></div>
+    </section>
+
+    <!-- ЭКРАН 4: НАСТРОЙКИ -->
+    <section class="screen" id="screen-settings" data-screen="settings">
+      <div class="day-head">
+        <div>
+          <div class="day-head__label">Настройки</div>
+          <div class="day-head__date">Сохраняются на этом устройстве</div>
+        </div>
+      </div>
+      <div id="settingsBody" class="day-body"></div>
+    </section>
+
+  </main>
+  <!-- ==================== НИЖНЕЕ МЕНЮ ==================== -->
+  <nav class="tabbar" id="tabbar" aria-label="Разделы">
+    <button class="tabbar__btn" type="button" data-tab="today" aria-label="Сегодня">
+      <svg class="tabbar__icon" viewBox="0 0 24 24" aria-hidden="true">
+        <rect x="3" y="4.5" width="18" height="16.5" rx="3.5" />
+        <path d="M3 9.5h18M8 2.5v4M16 2.5v4" />
+        <path d="M8.5 14h3" />
+      </svg>
+      <span class="tabbar__label">Сегодня</span>
+    </button>
+    <button class="tabbar__btn" type="button" data-tab="tomorrow" aria-label="Завтра">
+      <svg class="tabbar__icon" viewBox="0 0 24 24" aria-hidden="true">
+        <circle cx="12" cy="12" r="8.5" />
+        <path d="M12 7.5V12l3 2" />
+      </svg>
+      <span class="tabbar__label">Завтра</span>
+    </button>
+    <button class="tabbar__btn" type="button" data-tab="week" aria-label="Неделя">
+      <svg class="tabbar__icon" viewBox="0 0 24 24" aria-hidden="true">
+        <rect x="3.5" y="3.5" width="7" height="7" rx="2" />
+        <rect x="13.5" y="3.5" width="7" height="7" rx="2" />
+        <rect x="3.5" y="13.5" width="7" height="7" rx="2" />
+        <rect x="13.5" y="13.5" width="7" height="7" rx="2" />
+      </svg>
+      <span class="tabbar__label">Неделя</span>
+    </button>
+    <button class="tabbar__btn" type="button" data-tab="settings" aria-label="Настройки">
+      <svg class="tabbar__icon" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M4 7.5h8M17.5 7.5H20M4 16.5h3.5M13 16.5h7" />
+        <circle cx="14.75" cy="7.5" r="2.5" />
+        <circle cx="10.25" cy="16.5" r="2.5" />
+      </svg>
+      <span class="tabbar__label">Настройки</span>
+    </button>
+  </nav>
+
+  <!-- Всплывающее сообщение -->
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <!-- ==================== ЗАМЕТКА К УРОКУ (нижняя панель) ==================== -->
+  <div class="sheet-backdrop" id="sheetBackdrop" hidden></div>
+
+  <section class="sheet" id="noteSheet" role="dialog" aria-modal="true"
+           aria-labelledby="noteSheetTitle" hidden>
+    <div class="sheet__handle" id="sheetHandle"></div>
+    <div class="sheet__title" id="noteSheetTitle">Заметка к уроку</div>
+    <div class="sheet__subtitle" id="noteSheetSubtitle"></div>
+
+    <div class="sheet__field" id="noteScopeField">
+      <div class="segmented" id="noteScopeSegment">
+        <button class="segmented__btn" type="button" data-note-scope-btn="week">Каждую неделю</button>
+        <button class="segmented__btn" type="button" data-note-scope-btn="date">Только <span id="noteScopeDate">дату</span></button>
+      </div>
+      <div class="sheet__hint" id="noteScopeHint"></div>
+    </div>
+
+    <textarea class="sheet__textarea" id="noteText" rows="4" maxlength="600"
+      placeholder="Например: подготовить словарный диктант, принести сборники"></textarea>
+    <div class="sheet__counter"><span id="noteCounter">0</span>/600</div>
+
+    <div class="sheet__actions">
+      <button class="btn btn--danger btn--small" id="noteDelete" type="button" hidden>Удалить</button>
+      <button class="btn btn--primary" id="noteSave" type="button">Сохранить</button>
+    </div>
+    <button class="btn btn--ghost btn--small" id="noteCancel" type="button">Отмена</button>
+  </section>
+
+  <script src="app.js"></script>
+</body>
+</html>

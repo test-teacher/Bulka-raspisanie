@@ -1,0 +1,1231 @@
+/* =====================================================================
+   «Расписание преподавателя» — оформление (style.css)
+   Mobile-first, тёмная и светлая темы.
+
+   Цвета задаются CSS-переменными:
+     • базово — светлая палитра ниже;
+     • тёмная — автоматически по системной теме (@media prefers-color-scheme);
+     • в режиме «Авто» app.js подставляет цвета темы Telegram прямо в переменные,
+       поэтому они имеют приоритет над тем, что написано в этом файле;
+     • если тема выбрана вручную («Светлая» / «Тёмная»), цвета Telegram не
+       используются — берётся палитра приложения из app.js.
+   ===================================================================== */
+
+:root {
+  color-scheme: light dark;
+
+  /* Палитра (светлая) */
+  --bg: #eef1f7;
+  --bg-secondary: #ffffff;
+  --bg-elevated: #ffffff;
+  --bg-sunken: #e6eaf3;
+  --text: #121722;
+  --text-soft: #39414f;
+  --hint: #6b7484;
+  --accent: #3b82f6;
+  --accent-text: #ffffff;
+  --border: rgba(18, 23, 34, 0.09);
+  --border-strong: rgba(18, 23, 34, 0.16);
+  --shadow: 0 6px 18px rgba(18, 23, 34, 0.08);
+  --shadow-soft: 0 2px 8px rgba(18, 23, 34, 0.06);
+
+  /* Геометрия */
+  --radius: 18px;
+  --radius-sm: 12px;
+  --gap: 12px;
+  --tabbar-h: 62px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f1420;
+    --bg-secondary: #18202e;
+    --bg-elevated: #1c2534;
+    --bg-sunken: #131b28;
+    --text: #eef2f8;
+    --text-soft: #cdd6e4;
+    --hint: #96a2b6;
+    --accent: #4f9cf9;
+    --accent-text: #ffffff;
+    --border: rgba(255, 255, 255, 0.09);
+    --border-strong: rgba(255, 255, 255, 0.18);
+    --shadow: 0 8px 22px rgba(0, 0, 0, 0.38);
+    --shadow-soft: 0 2px 10px rgba(0, 0, 0, 0.28);
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  /* Классическая схема «на всю высоту»: работает и в старых iOS Safari,
+     где единицы dvh ещё не поддерживаются. */
+  height: 100%;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  min-height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Inter", "Segoe UI", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.35;
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+  /* Не даём странице «оттягиваться» вместе с окном Telegram */
+  overscroll-behavior-y: none;
+  overflow-wrap: break-word;
+  /* Отступ снизу — под нижнее меню и «безопасную зону» телефона */
+  padding-bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom) + 16px);
+}
+
+/* Скрытые элементы (панель заметок, загрушка) не должны занимать место */
+[hidden] {
+  display: none !important;
+}
+
+/* Убираем задержку 300 мс и случайный двойной тап-зум на тап-зонах */
+button,
+.btn,
+.tabbar__btn,
+.chip,
+.week-chip,
+.lesson-note {
+  touch-action: manipulation;
+}
+
+/* ==================== ШАПКА ==================== */
+
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
+  /* Сверху — «остров» iPhone, по бокам — safe-area в ландшафте */
+  padding: calc(env(safe-area-inset-top) + 12px) calc(16px + env(safe-area-inset-right)) 12px calc(16px + env(safe-area-inset-left));
+}
+
+.app-header__row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.app-header__title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.app-header__clock {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.app-header__subtitle {
+  margin-top: 2px;
+  font-size: 13px;
+  color: var(--hint);
+}
+
+.app-header__subtitle:empty {
+  display: none;
+}
+
+/* ==================== ЭКРАНЫ ==================== */
+
+.main {
+  /* Боковые safe-area нужны в горизонтальной ориентации на iPhone */
+  padding: 14px calc(14px + env(safe-area-inset-left)) 8px calc(14px + env(safe-area-inset-right));
+  max-width: 760px;
+  margin: 0 auto;
+}
+
+.screen {
+  display: none;
+}
+
+.screen--active {
+  display: block;
+  animation: screen-in 0.18s ease-out;
+}
+
+@keyframes screen-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.day-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 2px 4px 12px;
+}
+
+.day-head__label {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.day-head__date {
+  font-size: 13.5px;
+  color: var(--hint);
+  margin-top: 2px;
+}
+
+.day-head__badge {
+  flex: none;
+  background: var(--accent);
+  color: var(--accent-text);
+  border-radius: 999px;
+  padding: 5px 11px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.day-head__badge[hidden] {
+  display: none;
+}
+
+.day-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+}
+
+/* ==================== КАРТОЧКИ УРОКОВ ==================== */
+
+.lesson-card {
+  position: relative;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-soft);
+  /* Справа оставлено место под кнопку «заметка» (44 × 44 — удобная тап-зона) */
+  padding: 13px 56px 13px 16px;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  overflow: hidden;
+}
+
+/* Полоска типа занятия (урок / внеурочка / репетиторство) */
+.lesson-card::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: var(--type-color, var(--accent));
+}
+
+.lesson-card--active {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent), var(--shadow);
+}
+
+.lesson-card--past {
+  opacity: 0.5;
+}
+
+.lesson-card--tutor {
+  background: var(--bg-secondary);
+  border-style: dashed;
+}
+
+.lesson-card__num {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  border-radius: 11px;
+  background: var(--bg-sunken);
+  color: var(--text-soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.lesson-card__num--wide {
+  width: auto;
+  padding: 0 9px;
+  font-size: 12.5px;
+  background: var(--type-color, var(--accent));
+  color: #fff;
+}
+
+.lesson-card__body {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.lesson-card__top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.lesson-card__subject {
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.lesson-card__time {
+  font-size: 14.5px;
+  color: var(--text-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.lesson-card__meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 5px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 700;
+  border-radius: 999px;
+  padding: 3px 9px;
+  background: var(--bg-sunken);
+  color: var(--text-soft);
+  white-space: nowrap;
+}
+
+.chip--class {
+  background: var(--class-color, var(--accent));
+  color: #fff;
+}
+
+.chip--type {
+  background: transparent;
+  border: 1px solid var(--border-strong);
+  color: var(--hint);
+}
+
+.chip--break {
+  background: transparent;
+  border: 1px dashed var(--border-strong);
+  color: var(--hint);
+  font-weight: 600;
+}
+
+.chip--now {
+  background: var(--accent);
+  color: var(--accent-text);
+}
+
+/* Таймер и прогресс активного урока */
+.lesson-card__timer {
+  margin-top: 7px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.progress {
+  margin-top: 8px;
+  height: 5px;
+  border-radius: 999px;
+  background: var(--bg-sunken);
+  overflow: hidden;
+}
+
+.progress__bar {
+  height: 100%;
+  width: 0;
+  border-radius: 999px;
+  background: var(--accent);
+  transition: width 0.6s linear;
+}
+
+/* ==================== ЗАГОЛОВКИ БЛОКОВ ==================== */
+
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 16px 4px 2px;
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--text-soft);
+}
+
+.section-title::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+/* ==================== ПУСТЫЕ СОСТОЯНИЯ ==================== */
+
+.empty-card {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-soft);
+  padding: 26px 18px;
+  text-align: center;
+}
+
+.empty-card__icon {
+  font-size: 34px;
+  line-height: 1;
+}
+
+.empty-card__title {
+  margin-top: 10px;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.empty-card__text {
+  margin-top: 5px;
+  font-size: 14px;
+  color: var(--hint);
+}
+
+/* ==================== ЭКРАН «НЕДЕЛЯ» ==================== */
+
+.week-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: var(--radius);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-soft);
+}
+
+.week-table {
+  border-collapse: separate;
+  border-spacing: 0;
+  width: 100%;
+  min-width: 600px;
+  font-size: 12.5px;
+}
+
+.week-table th,
+.week-table td {
+  padding: 8px 6px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+
+.week-table tr:last-child th,
+.week-table tr:last-child td {
+  border-bottom: 0;
+}
+
+.week-table thead th {
+  background: var(--bg-elevated);
+}
+
+.week-corner {
+  width: 52px;
+  color: var(--hint);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.week-day-head {
+  min-width: 84px;
+}
+
+.week-day-head__short {
+  display: block;
+  font-size: 14.5px;
+  font-weight: 800;
+}
+
+.week-day-head__full {
+  display: block;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--hint);
+}
+
+.week-day-head--off .week-day-head__short {
+  color: var(--hint);
+}
+
+.week-day-head--today .week-day-head__short {
+  color: var(--accent);
+}
+
+.week-day-head__tag {
+  display: inline-block;
+  margin-top: 2px;
+  font-size: 9.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--accent);
+}
+
+.week-day-head__tag--off {
+  color: var(--hint);
+}
+
+.week-time {
+  width: 52px;
+  color: var(--hint);
+}
+
+.week-time__n {
+  display: block;
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--text-soft);
+}
+
+.week-time__t {
+  display: block;
+  font-size: 10.5px;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.week-cell {
+  min-width: 84px;
+}
+
+.week-cell--empty {
+  color: var(--border-strong);
+  text-align: center;
+  font-size: 13px;
+}
+
+/* Плитка стала кнопкой: по нажатию открывается заметка к этому уроку */
+.week-chip {
+  appearance: none;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  width: 100%;
+  padding: 5px 7px;
+  border: 0;
+  border-left: 3px solid var(--chip-type, var(--accent));
+  border-radius: 10px;
+  background: var(--bg-sunken);
+  color: var(--text-soft);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: transform 0.12s ease;
+}
+
+.week-chip:active {
+  transform: scale(0.97);
+}
+
+.week-chip--today {
+  outline: 1px solid var(--accent);
+}
+
+.week-chip__class {
+  align-self: flex-start;
+  font-size: 10.5px;
+  font-weight: 800;
+  color: #fff;
+  background: var(--chip-class, var(--accent));
+  border-radius: 999px;
+  padding: 1px 7px;
+}
+
+.week-chip__subject {
+  font-size: 11.5px;
+  color: var(--text-soft);
+  line-height: 1.25;
+}
+
+.week-chip__time {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--hint);
+  font-variant-numeric: tabular-nums;
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  margin: 10px 4px 0;
+}
+
+.legend__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--hint);
+}
+
+.legend__dot {
+  width: 11px;
+  height: 11px;
+  border-radius: 3px;
+  background: var(--dot, var(--accent));
+}
+
+/* ==================== ЭКРАН «НАСТРОЙКИ» ==================== */
+
+.settings-group {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-soft);
+  padding: 2px 14px;
+}
+
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 0;
+}
+
+.settings-row + .settings-row {
+  border-top: 1px solid var(--border);
+}
+
+.settings-row__text {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.settings-row__label {
+  font-size: 15.5px;
+  font-weight: 600;
+}
+
+.settings-row__hint {
+  margin-top: 2px;
+  font-size: 12.5px;
+  color: var(--hint);
+}
+
+/* Переключатель */
+.switch {
+  flex: none;
+  display: inline-flex;
+  cursor: pointer;
+}
+
+.switch__input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.switch__track {
+  width: 52px;
+  height: 31px;
+  border-radius: 999px;
+  background: var(--border-strong);
+  display: flex;
+  align-items: center;
+  padding: 3px;
+  transition: background 0.18s ease;
+}
+
+.switch__thumb {
+  width: 25px;
+  height: 25px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: var(--shadow-soft);
+  transition: transform 0.18s ease;
+}
+
+.switch__input:checked + .switch__track {
+  background: var(--accent);
+}
+
+.switch__input:checked + .switch__track .switch__thumb {
+  transform: translateX(21px);
+}
+
+.switch__input:focus-visible + .switch__track {
+  box-shadow: 0 0 0 3px var(--border-strong);
+}
+
+/* Кнопки */
+.btn {
+  appearance: none;
+  display: block;
+  width: 100%;
+  padding: 15px 16px;
+  border-radius: var(--radius);
+  border: 1px solid transparent;
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.12s ease, opacity 0.12s ease;
+}
+
+.btn:active {
+  transform: scale(0.99);
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.btn--primary {
+  background: var(--accent);
+  color: var(--accent-text);
+  box-shadow: var(--shadow-soft);
+}
+
+/* Справочная информация */
+.info-list {
+  margin: 0;
+}
+
+.info-list__row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  padding: 11px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.info-list__row:last-child {
+  border-bottom: 0;
+}
+
+.info-list dt {
+  font-size: 13.5px;
+  color: var(--hint);
+}
+
+.info-list dd {
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 600;
+  text-align: right;
+}
+
+.note {
+  margin: 14px 4px 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--hint);
+}
+
+/* Предупреждение об ошибке в файле данных */
+.note--error {
+  color: #e5484d;
+  font-weight: 600;
+}
+
+/* ==================== НИЖНЕЕ МЕНЮ ==================== */
+
+.tabbar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 30;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 2px;
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border);
+  padding: 6px calc(6px + env(safe-area-inset-right)) calc(6px + env(safe-area-inset-bottom)) calc(6px + env(safe-area-inset-left));
+}
+
+.tabbar__btn {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  font-family: inherit;
+  color: var(--hint);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 6px 2px;
+  border-radius: 14px;
+  cursor: pointer;
+  transition: transform 0.12s ease, background 0.15s ease, color 0.15s ease;
+}
+
+.tabbar__btn--active {
+  color: var(--accent);
+  background: var(--bg-sunken);
+}
+
+.tabbar__btn:active {
+  transform: scale(0.96);
+}
+
+.tabbar__icon {
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.tabbar__label {
+  font-size: 11px;
+  font-weight: 700;
+}
+
+/* ==================== СООБЩЕНИЕ ВНИЗУ ==================== */
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom) + 16px);
+  z-index: 40;
+  max-width: 90vw;
+  text-align: center;
+  padding: 10px 16px;
+  border-radius: 999px;
+  background: var(--text);
+  color: var(--bg);
+  font-size: 13.5px;
+  font-weight: 600;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, 12px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.toast--visible {
+  opacity: 0.96;
+  transform: translate(-50%, 0);
+}
+
+/* ==================== БОЛЬШИЕ ЭКРАНЫ ==================== */
+
+@media (min-width: 760px) {
+  .main {
+    padding: 18px 20px 10px;
+  }
+
+  .lesson-card__subject {
+    font-size: 18px;
+  }
+}
+
+/* ==================== ЗАМЕТКИ К УРОКАМ ==================== */
+
+/* Кнопка «заметка» в правом верхнем углу карточки */
+.lesson-card__note-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  border-radius: 14px;
+  background: var(--bg-sunken);
+  color: var(--text-soft);
+  font-size: 17px;
+  line-height: 1;
+  cursor: pointer;
+  transition: transform 0.12s ease, background 0.15s ease;
+}
+
+.lesson-card__note-btn:active {
+  transform: scale(0.94);
+}
+
+.lesson-card__note-btn--filled {
+  background: var(--accent);
+  color: var(--accent-text);
+}
+
+/* Текст заметки в карточке: нажатие открывает редактор */
+.lesson-note {
+  appearance: none;
+  display: flex;
+  gap: 8px;
+  width: 100%;
+  margin-top: 10px;
+  padding: 9px 11px;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--bg-sunken);
+  color: var(--text-soft);
+  font: inherit;
+  font-size: 13.5px;
+  line-height: 1.4;
+  text-align: left;
+  cursor: pointer;
+}
+
+.lesson-note:active {
+  transform: scale(0.99);
+}
+
+.lesson-note__icon {
+  flex: none;
+}
+
+.lesson-note__text {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+  overflow: hidden;
+  white-space: pre-wrap;
+}
+
+/* Отметка «есть заметка» в сетке «Неделя» */
+.week-chip__note {
+  font-size: 11px;
+  line-height: 1;
+}
+
+/* Дополнительные варианты кнопок */
+.btn--small {
+  padding: 12px 14px;
+  font-size: 15px;
+}
+
+.btn--danger {
+  background: transparent;
+  border-color: var(--border-strong);
+  color: #e5484d;
+}
+
+.btn--ghost {
+  background: transparent;
+  color: var(--hint);
+}
+
+/* ==================== НИЖНЯЯ ПАНЕЛЬ (РЕДАКТОР ЗАМЕТКИ) ==================== */
+
+.sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: rgba(6, 10, 18, 0.5);
+  -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: blur(2px);
+  animation: fade-in 0.16s ease-out;
+}
+
+.sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 51;
+  max-width: 560px;
+  margin: 0 auto;
+  max-height: 86vh;    /* для старых iOS Safari */
+  max-height: 86dvh;   /* учитывает панели Safari на iPhone */
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border);
+  border-radius: 22px 22px 0 0;
+  box-shadow: 0 -12px 34px rgba(0, 0, 0, 0.3);
+  padding: 10px calc(16px + env(safe-area-inset-right)) calc(14px + env(safe-area-inset-bottom)) calc(16px + env(safe-area-inset-left));
+  animation: sheet-in 0.2s ease-out;
+}
+
+.sheet__handle {
+  width: 46px;
+  height: 5px;
+  margin: 2px auto 12px;
+  border-radius: 999px;
+  background: var(--border-strong);
+}
+
+.sheet__title {
+  font-size: 17px;
+  font-weight: 800;
+}
+
+.sheet__subtitle {
+  margin-top: 3px;
+  font-size: 13px;
+  color: var(--hint);
+}
+
+.sheet__field {
+  margin-top: 12px;
+}
+
+.sheet__hint {
+  margin-top: 8px;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--hint);
+}
+
+.sheet__textarea {
+  display: block;
+  width: 100%;
+  min-height: 108px;
+  margin-top: 12px;
+  padding: 12px 13px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--bg-sunken);
+  color: var(--text);
+  font-family: inherit;
+  /* Важно: не меньше 16px — иначе iOS Safari сам увеличивает страницу */
+  font-size: 16px;
+  line-height: 1.4;
+  resize: none;
+}
+
+.sheet__textarea:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.sheet__counter {
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--hint);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.sheet__actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.sheet__actions .btn {
+  flex: 1 1 0;
+}
+
+@keyframes sheet-in {
+  from { transform: translateY(16px); opacity: 0.5; }
+  to { transform: none; opacity: 1; }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Пока открыта панель — страница под ней не прокручивается */
+body.sheet-open {
+  overflow: hidden;
+}
+
+/* ==================== ПЕРЕКЛЮЧАТЕЛИ (СЕГМЕНТЫ) ==================== */
+
+.segmented {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 4px;
+  padding: 4px;
+  background: var(--bg-sunken);
+  border-radius: 15px;
+}
+
+.segmented__btn {
+  appearance: none;
+  min-height: 44px;
+  padding: 8px 6px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--hint);
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 700;
+  line-height: 1.2;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.segmented__btn--active {
+  background: var(--bg-elevated);
+  color: var(--accent);
+  box-shadow: var(--shadow-soft);
+}
+
+/* Строка настроек «в столбик» (для переключателя темы) */
+.settings-row--column {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.settings-row__value {
+  flex: none;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ==================== МОБИЛЬНАЯ АДАПТАЦИЯ ====================
+   Ориентир — iPhone 12 Pro Max: 428 × 926 CSS-пикселей, «остров» сверху
+   (~47 px) и домашний индикатор снизу (~34 px). Края учитываются через
+   env(safe-area-inset-*), поэтому вёрстка не уезжает под интерфейс iOS. */
+
+@media (max-width: 759px) {
+  :root {
+    --gap: 11px;
+  }
+
+  .main {
+    padding-top: 12px;
+    padding-bottom: 6px;
+  }
+
+  .app-header__title {
+    font-size: 17.5px;
+  }
+
+  .lesson-card {
+    padding: 12px 54px 12px 15px;
+  }
+
+  .toast {
+    max-width: calc(100% - 32px);
+  }
+
+  .week-scroll {
+    overscroll-behavior-x: contain;
+  }
+}
+
+/* iPhone 12/13/14 Pro Max, «Plus» и похожие — от 390 до 480 px */
+@media (min-width: 390px) and (max-width: 480px) {
+  .day-head__label {
+    font-size: 24px;
+  }
+
+  .lesson-card__subject {
+    font-size: 17.5px;
+  }
+
+  .lesson-card__time {
+    font-size: 15px;
+  }
+
+  .tabbar__label {
+    font-size: 11.5px;
+  }
+
+  .main {
+    padding-left: calc(16px + env(safe-area-inset-left));
+    padding-right: calc(16px + env(safe-area-inset-right));
+  }
+}
+
+/* Компактные телефоны: iPhone SE, iPhone 8 и подобные */
+@media (max-width: 374px) {
+  .app-header__title {
+    font-size: 16px;
+  }
+
+  .day-head__label {
+    font-size: 20px;
+  }
+
+  .lesson-card {
+    padding: 11px 50px 11px 13px;
+  }
+
+  .lesson-card__subject {
+    font-size: 16px;
+  }
+
+  .lesson-card__note-btn {
+    font-size: 16px;
+  }
+
+  .tabbar__icon {
+    width: 20px;
+    height: 20px;
+  }
+
+  .tabbar__label {
+    font-size: 10px;
+  }
+
+  .segmented__btn {
+    font-size: 12.5px;
+  }
+}
+
+/* Телефон «на бок»: меньше вертикального «воздуха» */
+@media (orientation: landscape) and (max-height: 520px) {
+  .app-header {
+    position: static;
+  }
+
+  .day-head {
+    margin-bottom: 8px;
+  }
+
+  .day-head__label {
+    font-size: 19px;
+  }
+}
+
+/* Планшет и компьютер: панель заметок не прилипает к самому низу */
+@media (min-width: 760px) {
+  .sheet {
+    bottom: 24px;
+    border-radius: 22px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
+}
